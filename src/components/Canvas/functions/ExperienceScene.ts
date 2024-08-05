@@ -16,6 +16,8 @@ interface SceneUpdateType {
 }
 
 export class ExperienceScene extends PreScene {
+    public camera: SceneConstructor["camera"];
+
     private _controller: Controller;
     private _mouse: MouseMove;
     private _player: Human;
@@ -23,13 +25,14 @@ export class ExperienceScene extends PreScene {
 
     constructor({camera}: SceneConstructor) {
         super();
+        this.camera = camera;
         this._enemies = [];
         this._mouse = MouseMove.getInstance();
-        this._mouse.setCamera(camera);
+        this._mouse.setCamera(this.camera);
         this._controller = new Controller();
 
         this._spawnPlayer();
-        // this._spawnEnemies();
+        this._spawnEnemies();
     }
 
     private _spawnPlayer() {
@@ -58,7 +61,7 @@ export class ExperienceScene extends PreScene {
 
     public update(frame: SceneUpdateType) {
         this._mouse.update();
-        this._player.setController(this._controller.enemyControl(this._mouse.getPosition(), this._player.position, 0.05));
+        this._player.setController(this._controller.playerControl(this._player.position, 0.05));
     }
     public destroy() {
         this._controller.destroy();

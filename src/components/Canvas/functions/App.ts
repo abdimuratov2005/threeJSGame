@@ -1,4 +1,5 @@
-import { WebGLRenderer, OrthographicCamera } from "three";
+import { WebGLRenderer, OrthographicCamera, CameraHelper } from "three";
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { resizeDebounced } from "canvas/shared/utils/resizeDebounced";
 import { appOptions } from "canvas/options/app";
 import { ExperienceScene } from "./ExperienceScene";
@@ -18,21 +19,42 @@ export class App {
   private _experienceScene: ExperienceScene;
   private _canvas: HTMLCanvasElement;
   private _camera: OrthographicCamera;
-  
+
+  private _orbitControl: OrbitControls;
+
+  private _frustumSize: number;
+
   constructor(cons: AppConstructor) {
     this._rafId = null!;
     this._isResumed = true;
     this._lastFrameTime = null!;
     this._pixelRatio = 1;
+    this._frustumSize = 15;
 
     this.rendererEl = cons.rendererEl;
     this._canvas = document.createElement("canvas");
     this.rendererEl.appendChild(this._canvas);
-    this._camera = new OrthographicCamera(this.rendererEl.getBoundingClientRect().width / - 2, this.rendererEl.getBoundingClientRect().width / 2, this.rendererEl.getBoundingClientRect().height / 2, this.rendererEl.getBoundingClientRect().height / - 2, 1, 1000 );
+
+    const rectRenderer = this.rendererEl.getBoundingClientRect();
+    const aspectRenderer = rectRenderer.width / rectRenderer.height;
+
+    this._camera = new OrthographicCamera(
+      (0.5 * this._frustumSize * aspectRenderer) / -2,
+      (0.5 * this._frustumSize * aspectRenderer) / 2,
+      this._frustumSize / 2,
+      this._frustumSize / -2,
+      0.01,
+      1000
+    );
+    this._camera.position.z = 10;
+    const helperCamera = new CameraHelper(this._camera);
+    this._orbitControl = new OrbitControls(this._camera, this.rendererEl)
 
     this._experienceScene = new ExperienceScene({
-      camera: this._camera
+      camera: this._camera,
     });
+
+    this._experienceScene.add(helperCamera);
 
     this._renderer = new WebGLRenderer({
       canvas: this._canvas,
@@ -40,7 +62,6 @@ export class App {
       alpha: true,
       powerPreference: "high-performance",
     });
-
 
     this._onResize();
 
@@ -60,12 +81,15 @@ export class App {
     const deltaTime = frame - this._lastFrameTime;
     const slowDownFactor = deltaTime / appOptions.frame.DT_FPS;
     this._lastFrameTime = frame;
-    
+
     this._experienceScene.update({
       delta: deltaTime,
       slowDownFactor: slowDownFactor,
       time: frame,
     });
+    
+    this._orbitControl.update();
+
     this._renderer.render(this._experienceScene, this._camera);
   };
 
@@ -75,7 +99,11 @@ export class App {
 
   private _onResize() {
     const rect = this.rendererEl.getBoundingClientRect();
-    const camaraAspectRatio = rect.width / rect.height;
+    const aspectRenderer = rect.width / rect.height;
+    this._camera.left = (-0.5 * this._frustumSize * aspectRenderer) / 2;
+    this._camera.right = (0.5 * this._frustumSize * aspectRenderer) / 2;
+    this._camera.top = this._frustumSize / 2;
+    this._camera.bottom = -this._frustumSize / 2;
 
     this._renderer.setSize(rect.width, rect.height);
     this._pixelRatio = Math.min(window.devicePixelRatio, 2);
