@@ -62,6 +62,9 @@ export class ExperienceScene extends PreScene {
     public update(frame: SceneUpdateType) {
         this._mouse.update();
         this._player.setController(this._controller.playerControl(this._player.position, 0.05));
+        this._enemies.forEach(enemy => {
+            enemy.setController(this._controller.enemyControl(this._player.position, enemy.position, 0.01))
+        })
     }
     public destroy() {
         this._controller.destroy();

@@ -1,8 +1,9 @@
-import { WebGLRenderer, OrthographicCamera, CameraHelper } from "three";
+import { WebGLRenderer, OrthographicCamera } from "three";
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { resizeDebounced } from "canvas/shared/utils/resizeDebounced";
-import { appOptions } from "canvas/options/app";
+import { app, appOptions } from "canvas/options/app";
 import { ExperienceScene } from "./ExperienceScene";
+import { UI } from "./UI";
 
 interface AppConstructor {
   rendererEl: HTMLElement;
@@ -19,6 +20,7 @@ export class App {
   private _experienceScene: ExperienceScene;
   private _canvas: HTMLCanvasElement;
   private _camera: OrthographicCamera;
+  private _ui: UI;
 
   private _orbitControl: OrbitControls;
 
@@ -47,14 +49,11 @@ export class App {
       1000
     );
     this._camera.position.z = 10;
-    const helperCamera = new CameraHelper(this._camera);
     this._orbitControl = new OrbitControls(this._camera, this.rendererEl)
 
     this._experienceScene = new ExperienceScene({
       camera: this._camera,
     });
-
-    this._experienceScene.add(helperCamera);
 
     this._renderer = new WebGLRenderer({
       canvas: this._canvas,
@@ -62,6 +61,8 @@ export class App {
       alpha: true,
       powerPreference: "high-performance",
     });
+
+    this._ui = new UI();
 
     this._onResize();
 
@@ -87,6 +88,8 @@ export class App {
       slowDownFactor: slowDownFactor,
       time: frame,
     });
+
+    this._ui.update();
     
     this._orbitControl.update();
 
@@ -137,6 +140,9 @@ export class App {
 
   private _resumeApp() {
     this._isResumed = true;
+    if (app.game.paused === 1) {
+      app.game.paused = 0;
+    }
 
     if (!this._rafId) {
       this._rafId = window.requestAnimationFrame(
@@ -149,12 +155,16 @@ export class App {
     if (this._rafId) {
       window.cancelAnimationFrame(this._rafId);
       this._rafId = null!;
+      if (app.game.paused === 0) {
+        app.game.paused = 1;
+      }
     }
   }
 
   public destroy() {
     this._canvas.parentNode.removeChild(this._canvas);
     this._stopApp();
+    this._ui.destroy();
     this._removeListeners();
     this._renderer.dispose();
     this._experienceScene.destroy();

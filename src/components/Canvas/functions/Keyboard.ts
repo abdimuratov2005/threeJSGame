@@ -1,32 +1,32 @@
-interface KeyCode {
-  /**
-   * @param key_87 forward
-  */
-  87: boolean;
-  /**
-   * @param key_65 left
-  */
-  65: boolean;
-  /**
-   * @param key_83 backward
-  */
-  83: boolean;
-  /**
-   * @param key_68 right
-  */ 
-  68: boolean;
+type KeyOption = {
+  enabled: boolean;
+  disableOnKeyUp: boolean;
 }
+type KeyCode = Record<number, KeyOption>
 
 export class Keyboard {
-  public move: KeyCode;
+  static _canCreate: boolean;
+  static _instance: Keyboard;
+
+  public keys: KeyCode;
   constructor() {
-    this.move = {
-      87: false,
-      65: false,
-      83: false,
-      68: false,
+    this.keys = {
+      87: { enabled: false, disableOnKeyUp: true },
+      65: { enabled: false, disableOnKeyUp: true },
+      83: { enabled: false, disableOnKeyUp: true },
+      68: { enabled: false, disableOnKeyUp: true },
+
+      27: { enabled: false, disableOnKeyUp: false },
     };
+    
     this._addListeners();
+  }
+
+  public static getInstance() {
+    return Keyboard._instance || (Keyboard._canCreate = true,
+      Keyboard._instance = new Keyboard(),
+      Keyboard._canCreate = false),
+      Keyboard._instance
   }
 
   private _addListeners() {
@@ -42,15 +42,20 @@ export class Keyboard {
   }
 
   private _onKeyDown = (input: KeyboardEvent) => {
-    if (Object.keys(this.move).includes(input.keyCode.toString())) {
-      this.move[input.keyCode] = true;
+    if (Object.keys(this.keys).includes(input.keyCode.toString())) {
+      const key = this.keys[input.keyCode];
+      key.enabled = key.disableOnKeyUp ? true : !key.enabled
+      
     } else {
       console.error(`Not registered key: ${input.keyCode}`);
     }
   };
   private _onKeyUp = (input: KeyboardEvent) => {
-    if (Object.keys(this.move).includes(input.keyCode.toString())) {
-      this.move[input.keyCode] = false;
+    if (Object.keys(this.keys).includes(input.keyCode.toString())) {
+      const key = this.keys[input.keyCode];
+      if (key.disableOnKeyUp) {
+        key.enabled = false;
+      }
     } else {
       console.error(`Not registered key: ${input.keyCode}`);
     }
